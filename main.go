@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 
 	// To generate HTML output, see html/template, which has the same interface as this package but automatically secures HTML output against certain attacks.
@@ -27,11 +28,12 @@ lastly`,
 
 		`{{printf "%q" (print "lol" "cat" "dog" )}}`,
 
+		// "WARNING: Some notable implementations of Sprig (such as Kubernetes Helm) do not provide these functions for security reasons."
+
 		`{{- env "HOME" }}`,
 
 		`{{- printf "%q" (env "HOME") }}`,
 
-		// "WARNING: Some notable implementations of Sprig (such as Kubernetes Helm) do not provide these functions for security reasons."
 		`{{- expandenv "Your USER is set to $USER" }}`,
 
 		`Your USER is set to {{ expandenv "$USER" }}`,
@@ -39,28 +41,40 @@ lastly`,
 		`{{ betterAdd 1 2 }}`,
 
 		`{{ longcat | upper}}`,
-
-		// when map
-		// `{{ .lol | upper }}`,
-
-		// when struct
-		// `{{ .Lol | upper }}`,
 	}
 
-	data := map[string]string{
-		"yes": "box",
-		"lol": "cat",
+	var data interface{}
+
+	flag.Parse()
+
+	switch flag.Arg(0) {
+	case "map":
+		things = append(things, `map data: {{ .lol | upper }}`)
+		data = map[string]string{
+			"yes": "box",
+			"lol": "cat",
+		}
+	case "struct":
+		type Data struct {
+			Yes string
+			Lol string
+		}
+		things = append(things, `struct data: {{ .Lol | upper }}`)
+		data = Data{
+			Yes: "box",
+			Lol: "cat",
+		}
+	case "nestedMap":
+		things = append(things, `nestedMap data: {{ .box.color }} box contains: {{ .box.contains.what | upper }}`)
+		data = map[string]interface{}{
+			"box": map[string]interface{}{
+				"color": "red",
+				"contains": map[string]interface{}{
+					"what": "a cat!",
+				},
+			},
+		}
 	}
-
-	// type Data struct {
-	// 	Yes string
-	// 	Lol string
-	// }
-
-	// data := Data{
-	// 	Yes: "box",
-	// 	Lol: "cat",
-	// }
 
 	funcMap := sprig.FuncMap()
 	funcMap["betterAdd"] = func(a, b int) int {
